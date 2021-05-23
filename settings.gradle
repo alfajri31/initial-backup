@@ -1,0 +1,5 @@
+rootProject.name = 'gobola'
+include 'application'
+include 'apifootball'
+include 'swaggertest'
+

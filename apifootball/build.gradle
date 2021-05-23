@@ -1,0 +1,34 @@
+plugins {
+    id 'org.springframework.boot' version '2.4.5'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'java'
+}
+
+version 'unspecified'
+
+group = 'com.appintimedia'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '1.8'
+
+jar.enabled=true
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    compile('org.springframework.boot:spring-boot-starter-web')
+    compile 'com.squareup.okhttp3:okhttp:3.14.6'
+    compile group: 'org.json', name: 'json', version: '20180813'
+    compile 'com.google.cloud:google-cloud-storage:1.103.0'
+    compileOnly 'org.projectlombok:lombok:1.18.8'
+    annotationProcessor 'org.projectlombok:lombok:1.18.8'
+    compile group: 'org.springdoc', name: 'springdoc-openapi-ui', version: '1.5.2'
+}
+
+test {
+    useJUnitPlatform()
+}
