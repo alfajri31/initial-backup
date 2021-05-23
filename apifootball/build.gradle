@@ -26,7 +26,6 @@ dependencies {
     compile 'com.google.cloud:google-cloud-storage:1.103.0'
     compileOnly 'org.projectlombok:lombok:1.18.8'
     annotationProcessor 'org.projectlombok:lombok:1.18.8'
-    compile group: 'org.springdoc', name: 'springdoc-openapi-ui', version: '1.5.2'
 }
 
 test {

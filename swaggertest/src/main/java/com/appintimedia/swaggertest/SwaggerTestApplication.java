@@ -4,8 +4,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class SwaggerTest {
+public class SwaggerTestApplication {
     public static void main(String[] args) {
-        SpringApplication.run(SwaggerTest.class,args);
+        SpringApplication.run(SwaggerTestApplication.class,args);
     }
 }

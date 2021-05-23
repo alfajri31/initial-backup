@@ -22,6 +22,7 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.8'
     compile group: 'org.springdoc', name: 'springdoc-openapi-ui', version: '1.5.2'
     compile project(':apifootball')
+    compile project(':swaggertest')
 }
 
 test {
