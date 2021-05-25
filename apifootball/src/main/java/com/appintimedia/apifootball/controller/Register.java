@@ -45,4 +45,5 @@ public class Register {
         List<LeagueListApp> response = iAuthRequest.scoreByDate("v3/fixtures",date);
         return response;
     }
+
 }
