@@ -5,15 +5,9 @@ CREATE TABLE league (
     PRIMARY KEY(id)
 );
 
-CREATE TABLE team (
-     id bigint NOT NULL AUTO_INCREMENT,
-     name varchar(50) NOT NULL,
-     PRIMARY KEY(id)
-);
-
 CREATE TABLE player (
      id bigint NOT NULL AUTO_INCREMENT,
-     team_id bigint NOT NULL,
+     team_match_id bigint NOT NULL,
      name varchar(50) NOT NULL,
      pos varchar(50) NOT NULL,
      age integer NOT NULL,

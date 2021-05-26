@@ -1,17 +1,17 @@
 package com.appintimedia.apifootball.service;
 
-import com.appintimedia.apifootball.model.app.date.LeagueApp;
-import com.appintimedia.apifootball.model.app.date.LeagueListApp;
-import com.appintimedia.apifootball.model.base.RawDateScore;
-import com.appintimedia.apifootball.model.base.RawLiveScore;
-import com.appintimedia.apifootball.model.base.Result;
-import com.appintimedia.apifootball.model.base.Teams;
+import com.appintimedia.apifootball.dao.IAway;
+import com.appintimedia.apifootball.dao.IHome;
+import com.appintimedia.apifootball.dao.ITeamMatch;
+import com.appintimedia.apifootball.model.app.Result;
+import com.appintimedia.apifootball.model.app.SingleDateResponse;
+import com.appintimedia.apifootball.model.app.TeamMatch;
+import com.appintimedia.apifootball.orm.AwayOrm;
+import com.appintimedia.apifootball.orm.HomeOrm;
+import com.appintimedia.apifootball.orm.TeamMatchOrm;
 import com.appintimedia.apifootball.utils.HttpUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,13 +19,9 @@ import org.springframework.stereotype.Service;
 
 import java.net.HttpURLConnection;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 
 @Service
@@ -35,25 +31,17 @@ public class MainService implements IFootballApi {
     private PropertiesReader propertiesReader;
 
     @Autowired
-    private RawDateScore scoreByDate;
+    private ITeamMatch iTeamMatch;
+
+    @Autowired
+    private IHome Ihome;
+
+    @Autowired
+    private IAway Iaway;
 
 
     @Override
-    public Response timezone(String endpoint) throws Exception {
-        OkHttpClient client = new OkHttpClient();
-        Request request = new Request.Builder()
-                .url("https://api-football-v1.p.rapidapi.com/"+endpoint)
-                .get()
-                .addHeader("x-rapidapi-key", propertiesReader.getProperty("api_key"))
-                .addHeader("x-rapidapi-host", propertiesReader.getProperty("api_host"))
-                .build();
-        Response response = client.newCall(request).execute();
-
-        return response;
-    }
-
-    @Override
-    public RawDateScore rawDateScore(String endpoint, String date) throws Exception {
+    public SingleDateResponse singleDateResult(String endpoint, String date) throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
         JSONObject result;
         HttpURLConnection conn =  HttpUtils.createURLConnection("https://api-football-v1.p.rapidapi.com/"+endpoint+"?"+"date="+date, "GET");
@@ -62,12 +50,11 @@ public class MainService implements IFootballApi {
 
         int statusCode = conn.getResponseCode();
 
-        RawDateScore response;
+        SingleDateResponse response;
         if (statusCode == HttpStatus.OK.value()) {
             result = HttpUtils.getJsonResponse(conn);
             response = objectMapper
-                    .readValue(result.toString(), new TypeReference<RawDateScore>(){});
-            System.out.print(response);
+                    .readValue(result.toString(), new TypeReference<SingleDateResponse>(){});
         }
         else {
             result = HttpUtils.getJsonErrorResponse(conn);
@@ -78,84 +65,104 @@ public class MainService implements IFootballApi {
     }
 
     @Override
-    public RawLiveScore rawLiveScore(String endpoint, String live) throws Exception {
-        ObjectMapper objectMapper = new ObjectMapper();
-        JSONObject result;
-        HttpURLConnection conn = HttpUtils.createURLConnection("https://api-football-v1.p.rapidapi.com/"+endpoint+"?"+"date="+live, "GET");
-        conn.setRequestProperty("x-rapidapi-key", propertiesReader.getProperty("api_key"));
-        conn.setRequestProperty("x-rapidapi-host",propertiesReader.getProperty("api_host"));
+    public List<TeamMatch> singleDate(String endpoint, String date) throws Exception {
 
-        int statusCode = conn.getResponseCode();
-
-        RawLiveScore response;
-        if (statusCode == HttpStatus.OK.value()) {
-            result = HttpUtils.getJsonResponse(conn);
-            response = objectMapper
-                    .readValue(result.toString(), new TypeReference<RawLiveScore>(){});
-            System.out.print(response);
-        }
-        else {
-            result = HttpUtils.getJsonErrorResponse(conn);
-            throw new Exception();
-        }
-
-        return response;
-    }
-
-    @Override
-    public List<LeagueListApp> scoreByDate(String endpoint, String date) throws Exception {
-        RawDateScore dateScore = rawDateScore(endpoint,date);
+        SingleDateResponse singleDateResponse = singleDateResult(endpoint,date);
 
         List<Result> results = new ArrayList<>();
-        dateScore.getResponse().forEach(withCounter((i,statistic) -> {
+        singleDateResponse.getResponse().forEach(withCounter((i, statistic) -> {
           results.add(statistic);
         }));
 
-        List<LeagueApp> leagueAppList = new ArrayList<>();
+        List<TeamMatch> teamMatches = new ArrayList<>();
+
         results.forEach(withCounter((i,statistic) -> {
-            LeagueApp league = new LeagueApp();
-            league.setName(statistic.getLeague().getName());
-            league.setTeams(statistic.getTeams());
-            league.getTeams().getHome().setGoal(statistic.getGoals().getHome());
-            league.getTeams().getAway().setGoal(statistic.getGoals().getAway());
-            leagueAppList.add(i,league);
+
+//            TeamMatch teamMatch = new TeamMatch();
+//            teamMatch.setId(statistic.getLeague().getId());
+//            teamMatch.setName(statistic.getLeague().getName());
+//            teamMatch.setTeams(statistic.getTeams());
+//
+//            teamMatch.getTeams().getHome().setGoal(statistic.getGoals().getHome());
+//            teamMatch.getTeams().getAway().setGoal(statistic.getGoals().getAway());
+//
+//            Status status = new Status();
+//
+//            teamMatch.setStatus(status);
+//            teamMatch.getStatus().setLongMatch(statistic.getFixture().getStatus().getLongMatch());
+//            teamMatch.getStatus().setShortMatch(statistic.getFixture().getStatus().getShortMatch());
+//            teamMatch.getStatus().setElapsed(statistic.getFixture().getStatus().getElapsed());
+//
+//            Score score = new Score();
+//            Fulltime fulltime = new Fulltime();
+//            Halftime halftime = new Halftime();
+//            Extratime extratime = new Extratime();
+//            Penalty penalty = new Penalty();
+//
+//            teamMatch.getTeams().getHome().setScore(score);
+//            teamMatch.getTeams().getHome().getScore().setFulltime(fulltime);
+//            teamMatch.getTeams().getHome().getScore().setHalftime(halftime);
+//            teamMatch.getTeams().getHome().getScore().setExtratime(extratime);
+//            teamMatch.getTeams().getHome().getScore().setPenalty(penalty);
+//            teamMatch.getTeams().getHome().getScore().getFulltime().setHome(statistic.getScore().getFulltime().getHome());
+//            teamMatch.getTeams().getHome().getScore().getHalftime().setHome(statistic.getScore().getHalftime().getHome());
+//            teamMatch.getTeams().getHome().getScore().getExtratime().setHome(statistic.getScore().getExtratime().getHome());
+//            teamMatch.getTeams().getHome().getScore().getPenalty().setHome(statistic.getScore().getPenalty().getHome());
+//            teamMatch.getTeams().getAway().setScore(score);
+//            teamMatch.getTeams().getAway().getScore().setFulltime(fulltime);
+//            teamMatch.getTeams().getAway().getScore().setHalftime(halftime);
+//            teamMatch.getTeams().getAway().getScore().setExtratime(extratime);
+//            teamMatch.getTeams().getAway().getScore().setPenalty(penalty);
+//            teamMatch.getTeams().getAway().getScore().getFulltime().setAway(statistic.getScore().getFulltime().getAway());
+//            teamMatch.getTeams().getAway().getScore().getHalftime().setAway(statistic.getScore().getHalftime().getAway());
+//            teamMatch.getTeams().getAway().getScore().getExtratime().setAway(statistic.getScore().getExtratime().getAway());
+//            teamMatch.getTeams().getAway().getScore().getPenalty().setAway(statistic.getScore().getPenalty().getAway());
+
+
+            try {
+                TeamMatchOrm teamMatchOrm = new TeamMatchOrm();
+                teamMatchOrm.setUserId(0);
+                teamMatchOrm.setLeagueId(statistic.getLeague().getId());
+                teamMatchOrm.setHomeId(statistic.getTeams().getHome().getId());
+                teamMatchOrm.setAwayId(statistic.getTeams().getAway().getId());
+                teamMatchOrm.setElapsed(statistic.getFixture().getStatus().getElapsed());
+                teamMatchOrm.setDate(date);
+                teamMatchOrm.setStadium(statistic.getFixture().getVenue().getName());
+                teamMatchOrm.setKickStart(statistic.getFixture().getPeriods().getFirst());
+                teamMatchOrm.setReferee(statistic.getFixture().getReferee());
+                teamMatchOrm.setLive(false);
+                iTeamMatch.save(teamMatchOrm);
+
+                HomeOrm homeOrm = new HomeOrm();
+                homeOrm.setTeamMatchOrm(teamMatchOrm);
+                homeOrm.setName(statistic.getTeams().getHome().getName());
+                homeOrm.setLogoUrl(statistic.getTeams().getHome().getLogo());
+                homeOrm.setGoals(statistic.getGoals().getHome());
+                homeOrm.setWinner(statistic.getTeams().getHome().getWinner());
+                homeOrm.setFormation("FORMATION");
+                homeOrm.setCoach("COACH");
+                Ihome.save(homeOrm);
+
+                AwayOrm awayOrm = new AwayOrm();
+                awayOrm.setTeamMatchOrm(teamMatchOrm);
+                awayOrm.setName(statistic.getTeams().getAway().getName());
+                awayOrm.setLogoUrl(statistic.getTeams().getAway().getLogo());
+                awayOrm.setGoals(statistic.getGoals().getAway());
+                homeOrm.setWinner(statistic.getTeams().getAway().getWinner());
+                awayOrm.setFormation("FORMATION");
+                awayOrm.setCoach("COACH");
+                Iaway.save(awayOrm);
+            }
+            catch(NullPointerException e) {
+
+            }
+//            teamMatches.add(i,teamMatch);
         }));
 
-        Comparator<LeagueApp> compareByName = Comparator.comparing(LeagueApp::getName);
-        Collections.sort(leagueAppList, compareByName);
+//        Comparator<TeamMatch> compareByName = Comparator.comparing(TeamMatch::getName);
+//        Collections.sort(teamMatches, compareByName);
 
-        List<LeagueApp> leagueAppSortList = leagueAppList.stream().collect(Collectors.toList());
-
-        List<LeagueListApp> leagueListApps = new ArrayList<>();
-        List<Teams> teams = new ArrayList<>();
-        AtomicReference<String> nextPoint= new AtomicReference<>(leagueAppSortList.get(0).getName());
-        final int[] j = {0};
-        final int[] k = {0};
-        leagueAppList.forEach(withCounter((i,statistic) -> {
-            String currentPoint = statistic.getName();
-            if(currentPoint.equals(nextPoint.toString())) {
-                //add teams
-                teams.add(statistic.getTeams());
-                if(leagueAppList.get(i+1).getName()!=null) {
-                    nextPoint.set(leagueAppList.get(k[0]).getName());
-                    k[0] = teams.toArray().length + 2;
-                }
-            }
-            else if(!currentPoint.equals(nextPoint.toString())) {
-                teams.add(statistic.getTeams());
-                List<Teams> getTeam = new ArrayList<>();
-                getTeam.addAll(teams);
-                LeagueListApp leagueListApp = new LeagueListApp();
-                leagueListApp.setName(currentPoint);
-                leagueListApp.setTeams(getTeam);
-                leagueListApps.add(j[0] ,leagueListApp);
-                teams.removeAll(teams);
-                j[0] = j[0] + 1;
-            }
-        }));
-
-
-        return leagueListApps ;
+        return teamMatches;
     }
 
 
